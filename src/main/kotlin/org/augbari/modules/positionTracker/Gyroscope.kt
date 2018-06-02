@@ -8,12 +8,14 @@ class Gyroscope(initialState: DoubleArray): Integrable {
 
     override var currentState: DoubleArray = initialState
 
-    fun getGyroscopeVector(): DoubleArray {
-        return doubleArrayOf(x, y, z)
+    override fun setValues(array: DoubleArray) {
+        x = array[0]
+        y = array[1]
+        z = array[2]
     }
 
     override fun getValues(): DoubleArray {
-        return getGyroscopeVector()
+        return doubleArrayOf(x, y, z)
     }
 
 }

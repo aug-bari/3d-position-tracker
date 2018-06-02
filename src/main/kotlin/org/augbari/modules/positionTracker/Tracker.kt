@@ -9,11 +9,18 @@ class Tracker(private val broker: String, private val clientId: String): MqttCal
     lateinit var connOpts: MqttConnectOptions
     val accelerometer = Accelerometer(doubleArrayOf(0.0, 0.0, 0.0))
     val gyroscope = Gyroscope(doubleArrayOf(0.0, 0.0, 0.0))
+    val speed = Speed(doubleArrayOf(0.0, 0.0, 0.0))
+    val position = Position(doubleArrayOf(0.0, 0.0, 0.0))
     val integrator = Integrator()
+    var messageArrivedCallback: () -> Unit = {}
 
     init {
         integrator.add(accelerometer)
-        integrator.add(gyroscope)
+        //integrator.add(gyroscope)
+        integrator.add(speed)
+
+        integrator.setOutputObject(accelerometer, speed)
+        integrator.setOutputObject(speed, position)
     }
 
     fun connect(username: String, password: String): Boolean {
@@ -61,17 +68,15 @@ class Tracker(private val broker: String, private val clientId: String): MqttCal
         val data = Klaxon().parseArray<Double>(message.toString())!!
 
         when(topic) {
-            "acceleration " -> {
-                accelerometer.x = data[0]
-                accelerometer.y = data[1]
-                accelerometer.z = data[2]
+            "acceleration" -> {
+                accelerometer.setValues(data.toDoubleArray())
             }
             "gyro" -> {
-                accelerometer.x = data[0]
-                accelerometer.y = data[1]
-                accelerometer.z = data[2]
+                gyroscope.setValues(data.toDoubleArray())
             }
         }
+
+        messageArrivedCallback()
     }
 
     override fun connectionLost(cause: Throwable?) {

@@ -1,6 +1,6 @@
 package org.augbari.modules.positionTracker
 
-class Accelerometer(initialState: DoubleArray): Integrable {
+class Position(initialState: DoubleArray): Integrable {
 
     var x: Double = 0.0
     var y: Double = 0.0

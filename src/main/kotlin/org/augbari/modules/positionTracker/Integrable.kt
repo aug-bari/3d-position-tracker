@@ -6,4 +6,6 @@ interface Integrable {
 
     fun getValues(): DoubleArray
 
+    fun setValues(array: DoubleArray)
+
 }

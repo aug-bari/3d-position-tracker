@@ -39,6 +39,7 @@ dependencies {
     compile("org.eclipse.paho", "org.eclipse.paho.client.mqttv3", "1.0.2")
     compile("com.beust", "klaxon", "3.0.1")
     compile("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "0.21")
+    compile("org.jfree", "jfreechart", "1.0.19")
 }
 
 configure<JavaPluginConvention> {
