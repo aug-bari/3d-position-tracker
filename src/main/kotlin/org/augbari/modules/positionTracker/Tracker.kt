@@ -1,20 +1,29 @@
 package org.augbari.modules.positionTracker
 
+import com.beust.klaxon.Klaxon
 import org.eclipse.paho.client.mqttv3.*
 
 class Tracker(private val broker: String, private val clientId: String): MqttCallback {
 
     lateinit var mqttClient: MqttClient
     lateinit var connOpts: MqttConnectOptions
-    val accelerometer = Accelerometer()
+    val accelerometer = Accelerometer(doubleArrayOf(0.0, 0.0, 0.0))
+    val gyroscope = Gyroscope(doubleArrayOf(0.0, 0.0, 0.0))
+    val integrator = Integrator()
 
-    fun connect(username: String, password: String): Tracker? {
+    init {
+        integrator.add(accelerometer)
+        integrator.add(gyroscope)
+    }
+
+    fun connect(username: String, password: String): Boolean {
         try {
 
             // mqtt Client
             mqttClient = MqttClient(broker, clientId)
 
             // Connetion options
+            mqttClient.setCallback(this)
             connOpts = MqttConnectOptions()
             connOpts.isCleanSession = true
             connOpts.userName = username
@@ -25,13 +34,13 @@ class Tracker(private val broker: String, private val clientId: String): MqttCal
             mqttClient.connect(connOpts)
             println("Connected")
 
-            return this
+            return true
 
         } catch (e: MqttException) {
             println("ErrorCode: " + e.reasonCode)
             println("Message: " + e.message)
             println("Cause: " + e.cause)
-            return null
+            return false
         }
     }
 
@@ -40,15 +49,29 @@ class Tracker(private val broker: String, private val clientId: String): MqttCal
         println("Disconnected")
     }
 
+    fun register(topic: String) {
+        mqttClient.subscribe(topic)
+    }
+
     fun sendMessage(topic: String, data: String) {
         mqttClient.publish(topic, MqttMessage(data.toByteArray()))
     }
 
     override fun messageArrived(topic: String?, message: MqttMessage?) {
-        val acceleration = message.toString().split(delimiters = *arrayOf(",")).map { it.toDouble() }
-        accelerometer.accX = acceleration[0]
-        accelerometer.accY = acceleration[1]
-        accelerometer.accZ = acceleration[2]
+        val data = Klaxon().parseArray<Double>(message.toString())!!
+
+        when(topic) {
+            "acceleration " -> {
+                accelerometer.x = data[0]
+                accelerometer.y = data[1]
+                accelerometer.z = data[2]
+            }
+            "gyro" -> {
+                accelerometer.x = data[0]
+                accelerometer.y = data[1]
+                accelerometer.z = data[2]
+            }
+        }
     }
 
     override fun connectionLost(cause: Throwable?) {

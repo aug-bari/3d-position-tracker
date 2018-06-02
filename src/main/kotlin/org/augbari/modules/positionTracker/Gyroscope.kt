@@ -1,6 +1,6 @@
 package org.augbari.modules.positionTracker
 
-class Accelerometer(initialState: DoubleArray): Integrable {
+class Gyroscope(initialState: DoubleArray): Integrable {
 
     var x: Double = 0.0
     var y: Double = 0.0
@@ -8,12 +8,12 @@ class Accelerometer(initialState: DoubleArray): Integrable {
 
     override var currentState: DoubleArray = initialState
 
-    fun getAccelerationVector(): DoubleArray {
+    fun getGyroscopeVector(): DoubleArray {
         return doubleArrayOf(x, y, z)
     }
 
     override fun getValues(): DoubleArray {
-        return getAccelerationVector()
+        return getGyroscopeVector()
     }
 
 }
