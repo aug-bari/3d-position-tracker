@@ -1,22 +1,27 @@
 package org.augbari.modules.positionTracker
 
-import com.beust.klaxon.Klaxon
 import org.eclipse.paho.client.mqttv3.*
+import org.json.JSONObject
 
 class Tracker(private val broker: String, private val clientId: String): MqttCallback {
 
     lateinit var mqttClient: MqttClient
     lateinit var connOpts: MqttConnectOptions
+    var frequency = Double.POSITIVE_INFINITY
+    var previousPacketTime = 0.0
+    private val nano2sec = 0.000000001
+
     val accelerometer = Accelerometer(doubleArrayOf(0.0, 0.0, 0.0))
     val gyroscope = Gyroscope(doubleArrayOf(0.0, 0.0, 0.0))
     val speed = Speed(doubleArrayOf(0.0, 0.0, 0.0))
     val position = Position(doubleArrayOf(0.0, 0.0, 0.0))
-    val integrator = Integrator()
-    var messageArrivedCallback: () -> Unit = {}
+    private val integrator = Integrator()
+
+    var onMessageArrivedCallback: () -> Unit = {}
 
     init {
         integrator.add(accelerometer)
-        //integrator.add(gyroscope)
+        integrator.add(gyroscope)
         integrator.add(speed)
 
         integrator.setOutputObject(accelerometer, speed)
@@ -64,19 +69,39 @@ class Tracker(private val broker: String, private val clientId: String): MqttCal
         mqttClient.publish(topic, MqttMessage(data.toByteArray()))
     }
 
+    /**
+     * Message format := {"gyro":{"x":0.26267204,"y":0.06963864,"z":0.26145032},"accel":{"x":-0.1656,"y":0.8746,"z":-0.41939998}}
+     * */
     override fun messageArrived(topic: String?, message: MqttMessage?) {
-        val data = Klaxon().parseArray<Double>(message.toString())!!
+        if(previousPacketTime == 0.0) {
+            // Set start time if it isn't initialized
+            previousPacketTime = System.nanoTime() * nano2sec
+        } else {
+            // Else calculate frequency of incoming packets
+            frequency = calcFrequency()
+        }
 
+        // Parse JSON data
+        val data = JSONObject(message.toString())
+        val gyro = data.getJSONObject("gyro")
+        val accel = data.getJSONObject("accel")
+
+        // Check topic
         when(topic) {
-            "acceleration" -> {
-                accelerometer.setValues(data.toDoubleArray())
+            "mpu6050" -> {
+                accelerometer.setValues(doubleArrayOf(accel.getDouble("x"), accel.getDouble("y"), accel.getDouble("z")))
+                gyroscope.setValues(doubleArrayOf(gyro.getDouble("x"), gyro.getDouble("y"), gyro.getDouble("z")))
             }
-            "gyro" -> {
-                gyroscope.setValues(data.toDoubleArray())
+            "disconnect" -> {
+                disconnect()
             }
         }
 
-        messageArrivedCallback()
+        // Integrator step
+        integrator.integrate()
+
+        // Custom callback
+        onMessageArrivedCallback()
     }
 
     override fun connectionLost(cause: Throwable?) {
@@ -84,4 +109,11 @@ class Tracker(private val broker: String, private val clientId: String): MqttCal
     }
 
     override fun deliveryComplete(token: IMqttDeliveryToken?) {}
+
+    fun calcFrequency(): Double {
+        val deltaTime = System.nanoTime() * nano2sec - previousPacketTime
+        previousPacketTime = System.nanoTime() * nano2sec
+        return 1 / deltaTime
+    }
+
 }

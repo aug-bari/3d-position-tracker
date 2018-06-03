@@ -10,25 +10,20 @@ import org.jfree.ui.ApplicationFrame;
 
 public class Plotter extends ApplicationFrame {
 
-    public XYSeries pos, acc, vel;
+    public XYSeries posX, posY, posZ;
 
-    /**
-     * A demonstration application showing an XY series containing a null value.
-     *
-     * @param title  the frame title.
-     */
     public Plotter(final String title) {
 
         super(title);
-        pos = new XYSeries("Position");
-        acc = new XYSeries("Acceleration");
-        vel = new XYSeries("Speed");
+        posX = new XYSeries("X");
+        posY = new XYSeries("Y");
+        posZ = new XYSeries("Z");
         final XYSeriesCollection data = new XYSeriesCollection();
-        data.addSeries(pos);
-        data.addSeries(acc);
-        data.addSeries(vel);
+        data.addSeries(posX);
+        data.addSeries(posY);
+        data.addSeries(posZ);
         final JFreeChart chart = ChartFactory.createXYLineChart(
-                "Z Axis",
+                "Acceleration",
                 "Time",
                 "Magnitude",
                 data,
@@ -39,7 +34,7 @@ public class Plotter extends ApplicationFrame {
         );
 
         final ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPreferredSize(new java.awt.Dimension(500, 270));
+        chartPanel.setPreferredSize(new java.awt.Dimension(1024, 768));
         setContentPane(chartPanel);
 
     }

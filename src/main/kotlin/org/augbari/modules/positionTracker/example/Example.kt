@@ -9,42 +9,39 @@ class Example {
 
     companion object {
 
-        val graph = Plotter("XY Series Demo")
+        val graph = Plotter("Graph")
 
         @JvmStatic
         fun main(args: Array<String>) {
 
             val broker = "tcp://broker.shiftr.io"
-            val clientId = "PositionTrackerModule" + randomString(8)
+            val clientId = "PositionTrackerModule"// + randomString(8)
             val username = "pippobaudo"
             val password = "666tommaso"
 
             val tracker = Tracker(broker, clientId)
 
-            // TODO - Implement onDisconnect event handler
-
             // Try connecting
             if(tracker.connect(username, password)) {
 
                 // Register to channel
-                tracker.register("acceleration")
-                tracker.register("gyro")
+                tracker.register("mpu6050")
 
-                // Tell arduino to start sending data
-                tracker.sendMessage("accelerometer", "start")
+                // Create custom callback for onMessageArrivedCallback
+                var time = 0.0
+                tracker.onMessageArrivedCallback = {
+                    Example.graph.posX.add(time, tracker.speed.getValues()[0])
+                    //Example.graph.posY.add(time, tracker.accelerometer.getValues()[0])
+                    //Example.graph.posZ.add(time, tracker.position.getValues()[2])
 
-                // Create custom callback for onMessageArrivedCallback - draw plot on Z axis
-                var time = 0
-                tracker.messageArrivedCallback = {
-                    Example.graph.pos.add(time++, tracker.position.getValues()[2])
-                    Example.graph.acc.add(time++, tracker.accelerometer.getValues()[2])
-                    Example.graph.vel.add(time++, tracker.speed.getValues()[2])
-
-                    if (time > 300) {
-                        Example.graph.pos.remove(0)
-                        Example.graph.acc.remove(0)
-                        Example.graph.vel.remove(0)
+                    if (time > 5) {
+                        Example.graph.posX.remove(0)
+                        //Example.graph.posY.remove(0)
+                        //Example.graph.posZ.remove(0)
                     }
+
+                    time += 1 / tracker.frequency
+                    //time += 1
                 }
 
                 // Plotter
@@ -52,15 +49,15 @@ class Example {
                 RefineryUtilities.centerFrameOnScreen(graph)
                 graph.isVisible = true
 
-                while(true) {
+                // Keep this thread live
+                while(tracker.mqttClient.isConnected) {
+
+                    // To get frequency between packets
+                    //println(tracker.frequency)
+
                     Thread.sleep(1000)
                 }
 
-                // Stop receving data
-                //tracker.sendMessage("accelerometer", "stop")
-
-                // Disconnect from broker
-                //tracker.disconnect()
             }
 
         }
@@ -72,10 +69,6 @@ class Example {
                     .asSequence()
                     .map(source::get)
                     .joinToString("")
-        }
-
-        fun round2Decimals(value: Double): Double {
-            return Math.round(value * 100.0) / 100.0
         }
 
     }
