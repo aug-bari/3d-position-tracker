@@ -30,18 +30,17 @@ class Example {
                 // Create custom callback for onMessageArrivedCallback
                 var time = 0.0
                 tracker.onMessageArrivedCallback = {
-                    Example.graph.posX.add(time, tracker.speed.getValues()[0])
-                    //Example.graph.posY.add(time, tracker.accelerometer.getValues()[0])
-                    //Example.graph.posZ.add(time, tracker.position.getValues()[2])
+                    Example.graph.posX.add(time, tracker.position.getValues()[0])
+                    Example.graph.posY.add(time, tracker.position.getValues()[1])
+                    Example.graph.posZ.add(time, tracker.position.getValues()[2])
 
                     if (time > 5) {
                         Example.graph.posX.remove(0)
-                        //Example.graph.posY.remove(0)
-                        //Example.graph.posZ.remove(0)
+                        Example.graph.posY.remove(0)
+                        Example.graph.posZ.remove(0)
                     }
 
                     time += 1 / tracker.frequency
-                    //time += 1
                 }
 
                 // Plotter
@@ -52,8 +51,8 @@ class Example {
                 // Keep this thread live
                 while(tracker.mqttClient.isConnected) {
 
-                    // To get frequency between packets
-                    //println(tracker.frequency)
+                    // To get time between packets
+                    println(1 / tracker.frequency)
 
                     Thread.sleep(1000)
                 }

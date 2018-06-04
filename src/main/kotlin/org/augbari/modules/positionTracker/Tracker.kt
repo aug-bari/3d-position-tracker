@@ -5,27 +5,41 @@ import org.json.JSONObject
 
 class Tracker(private val broker: String, private val clientId: String): MqttCallback {
 
+    // mqtt vars
     lateinit var mqttClient: MqttClient
     lateinit var connOpts: MqttConnectOptions
+    private val qos = 2
+
+    // Time vars
     var frequency = Double.POSITIVE_INFINITY
     var previousPacketTime = 0.0
     private val nano2sec = 0.000000001
 
+    // Objects
     val accelerometer = Accelerometer(doubleArrayOf(0.0, 0.0, 0.0))
     val gyroscope = Gyroscope(doubleArrayOf(0.0, 0.0, 0.0))
     val speed = Speed(doubleArrayOf(0.0, 0.0, 0.0))
     val position = Position(doubleArrayOf(0.0, 0.0, 0.0))
     private val integrator = Integrator()
 
+    // Custom callback
     var onMessageArrivedCallback: () -> Unit = {}
 
     init {
+        // Add objects to integrator
         integrator.add(accelerometer)
         integrator.add(gyroscope)
         integrator.add(speed)
 
+        // Set integration output
         integrator.setOutputObject(accelerometer, speed)
         integrator.setOutputObject(speed, position)
+
+        // Set output filter for speed
+        integrator.setInputFilter(accelerometer, FilterType.highPassFilter, 50000000.0)
+        integrator.setInputFilter(accelerometer, FilterType.lowPassFilter, .001)
+        integrator.setInputFilter(speed, FilterType.highPassFilter, 50000000.0)
+        //integrator.setOutputFilter(speed, FilterType.highPassFilter, 50000000.0)
     }
 
     fun connect(username: String, password: String): Boolean {
@@ -62,15 +76,15 @@ class Tracker(private val broker: String, private val clientId: String): MqttCal
     }
 
     fun register(topic: String) {
-        mqttClient.subscribe(topic)
+        mqttClient.subscribe(topic, qos)
     }
 
     fun sendMessage(topic: String, data: String) {
-        mqttClient.publish(topic, MqttMessage(data.toByteArray()))
+        mqttClient.publish(topic, data.toByteArray(), qos, true)
     }
 
     /**
-     * Message format := {"gyro":{"x":0.26267204,"y":0.06963864,"z":0.26145032},"accel":{"x":-0.1656,"y":0.8746,"z":-0.41939998}}
+     * Required message format := {"gyro":{"x":0.26267204,"y":0.06963864,"z":0.26145032},"accel":{"x":-0.1656,"y":0.8746,"z":-0.41939998}}
      * */
     override fun messageArrived(topic: String?, message: MqttMessage?) {
         if(previousPacketTime == 0.0) {

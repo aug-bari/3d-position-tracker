@@ -2,43 +2,44 @@ package org.augbari.modules.positionTracker
 
 class Integrator {
 
-    var integrablesObjects: MutableMap<Integrable, DoubleArray> = mutableMapOf()
-    var outputObjectsMapping: MutableMap<Integrable, Integrable> = mutableMapOf()
+    // Define integrable objects
+    private var integrablesObjects: MutableMap<Integrable, DoubleArray> = mutableMapOf()
+    private var outputObjectsMapping: MutableMap<Integrable, Integrable> = mutableMapOf()
 
-    val nano2sec = 0.000000001
-    var startTime: Double = System.nanoTime() * nano2sec
-    var endTime: Double = System.nanoTime() * nano2sec
+    // Time vars
+    private val nano2sec = 0.000000001
+    private var startTime: Double = System.nanoTime() * nano2sec
+    private var endTime: Double = System.nanoTime() * nano2sec
 
-    var last5velsIn = mutableListOf<Double>()
+    // Filtering
+    private var inputFilterMapping: MutableMap<Integrable, Filter> = mutableMapOf()
+    private var outputFilterMapping: MutableMap<Integrable, Filter> = mutableMapOf()
 
     fun integrate() {
 
         endTime = System.nanoTime() * nano2sec
-        var deltaTime = endTime - startTime
+        val deltaTime = endTime - startTime
 
-        for((integrableObject, integral) in integrablesObjects){
+        for((integrableObject, integral) in integrablesObjects) {
 
-            // Perform math
-            val newIntegralValues: DoubleArray = integral.mapIndexed { index, d ->
-                val increment = (integrableObject.currentState[index] + integrableObject.getValues()[index]) * deltaTime / 2
-
-                if(index == 0 && integrableObject is Accelerometer) {
-                    last5velsIn.add(d + increment)
-
-                    if(last5velsIn.size > 2) {
-                        last5velsIn.removeAt(0)
-
-                        highPassFilter(last5velsIn.toDoubleArray(), deltaTime, .01).last()
-
-                    } else {
-
-                        0.0
-
-                    }
-                } else {
-                    d + increment
+            // Apply filters to input
+            inputFilterMapping.forEach { integrable, filter ->
+                if(integrable == integrableObject) {
+                    integrableObject.setValues(inputFilterMapping[integrable]!!.filter(integrableObject.getValues(), deltaTime))
                 }
+            }
+
+            // Perform integration
+            var newIntegralValues: DoubleArray = integral.mapIndexed { index, d ->
+                d + (integrableObject.currentState[index] + integrableObject.getValues()[index]) * deltaTime / 2
             }.toDoubleArray()
+
+            // Apply filters to output (to integrated values)
+            outputObjectsMapping.forEach { integrableIn, integrableOut ->
+                if(outputFilterMapping[integrableIn] != null && integrableOut == integrableObject) {
+                    newIntegralValues = outputFilterMapping[integrableIn]!!.filter(newIntegralValues, deltaTime)
+                }
+            }
 
             // Update object states
             integrableObject.currentState = integrableObject.getValues()
@@ -65,17 +66,12 @@ class Integrator {
         outputObjectsMapping[integrableObject] = outObject
     }
 
-    fun highPassFilter(input: DoubleArray, dt: Double, RC: Double): DoubleArray {
-        var output = DoubleArray(input.size)
-        val alpha = RC / (RC + dt)
-        for (i in input.indices) {
-            if(i == 0) {
-                output[0] = input[0]
-            } else {
-                output[i] = alpha * output[i - 1] + alpha * (input[i] - input[i - 1])
-            }
-        }
-        return output
+    fun setInputFilter(integrableObject: Integrable, filterType: FilterType, RC: Double) {
+        inputFilterMapping[integrableObject] = Filter(filterType, RC)
+    }
+
+    fun setOutputFilter(integrableObject: Integrable, filterType: FilterType, RC: Double) {
+        outputFilterMapping[integrableObject] = Filter(filterType, RC)
     }
 
 }
