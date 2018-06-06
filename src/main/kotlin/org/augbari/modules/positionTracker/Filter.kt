@@ -2,28 +2,31 @@ package org.augbari.modules.positionTracker
 
 class Filter(private val filterType: FilterType, val RC: Double) {
 
-    private var previousValues: DoubleArray = doubleArrayOf()
+    private var previousValues: MutableList<DoubleArray> = mutableListOf()
 
     fun filter(inputArray: DoubleArray, dt: Double): DoubleArray {
 
-        // Initialize previousValues
         if(previousValues.isEmpty()) {
-            previousValues = DoubleArray(inputArray.size)
+            // Initialize previousValues
+            previousValues = mutableListOf(DoubleArray(inputArray.size))
+        } else {
+            // Or add this to previous values
+            previousValues.add(inputArray)
+
+            // Clear old points
+            if(previousValues.size > 1000) {
+                previousValues.removeAt(0)
+            }
         }
 
-        return inputArray.mapIndexed { index, double -> filter(double, index, dt) }.toDoubleArray()
+        return inputArray.mapIndexed { index, double -> filter(index, dt) }.toDoubleArray()
     }
 
-    private fun filter(value: Double, previousValueIndex: Int, dt: Double): Double {
-        val result = when(filterType) {
-            FilterType.highPassFilter -> highPassFilter(doubleArrayOf(previousValues[previousValueIndex], value), dt)
-            FilterType.lowPassFilter -> lowPassFilter(doubleArrayOf(previousValues[previousValueIndex], value), dt)
+    private fun filter(previousValueIndex: Int, dt: Double): Double {
+        return when(filterType) {
+            FilterType.highPassFilter -> highPassFilter(previousValues.map { it[previousValueIndex] }.toDoubleArray(), dt)
+            FilterType.lowPassFilter -> lowPassFilter(previousValues.map { it[previousValueIndex] }.toDoubleArray(), dt)
         }
-
-        // Save previous value
-        previousValues[previousValueIndex] = value
-
-        return result
     }
 
     private fun highPassFilter(input: DoubleArray, dt: Double): Double {

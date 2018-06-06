@@ -35,9 +35,9 @@ class Integrator {
             }.toDoubleArray()
 
             // Apply filters to output (to integrated values)
-            outputObjectsMapping.forEach { integrableIn, integrableOut ->
-                if(outputFilterMapping[integrableIn] != null && integrableOut == integrableObject) {
-                    newIntegralValues = outputFilterMapping[integrableIn]!!.filter(newIntegralValues, deltaTime)
+            outputFilterMapping.forEach { integrable, filter ->
+                if(integrable == integrableObject) {
+                    newIntegralValues = outputFilterMapping[integrable]!!.filter(newIntegralValues, deltaTime)
                 }
             }
 

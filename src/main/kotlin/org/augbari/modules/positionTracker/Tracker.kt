@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 class Tracker(private val broker: String, private val clientId: String): MqttCallback {
 
-    // mqtt vars
+    // MQTT vars
     lateinit var mqttClient: MqttClient
     lateinit var connOpts: MqttConnectOptions
     private val qos = 2
@@ -36,10 +36,9 @@ class Tracker(private val broker: String, private val clientId: String): MqttCal
         integrator.setOutputObject(speed, position)
 
         // Set output filter for speed
-        integrator.setInputFilter(accelerometer, FilterType.highPassFilter, 50000000.0)
-        integrator.setInputFilter(accelerometer, FilterType.lowPassFilter, .001)
-        integrator.setInputFilter(speed, FilterType.highPassFilter, 50000000.0)
-        //integrator.setOutputFilter(speed, FilterType.highPassFilter, 50000000.0)
+        integrator.setInputFilter(accelerometer, FilterType.highPassFilter, .1)
+        //integrator.setInputFilter(accelerometer, FilterType.lowPassFilter, 0.001)
+        //integrator.setInputFilter(speed, FilterType.highPassFilter, 1.0)
     }
 
     fun connect(username: String, password: String): Boolean {
