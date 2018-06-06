@@ -8,10 +8,20 @@ import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.ApplicationFrame;
 
+/**
+ * Simple graph plotter used to plot tracker data
+ *
+ * Documentation can be found on org.jfree site
+ *
+ * Thanks to org.jfree
+ * */
 public class Plotter extends ApplicationFrame {
 
     public XYSeries posX, posY, posZ;
 
+    /**
+     * Constructor used to build Plotter Object
+     * */
     public Plotter(final String title) {
 
         super(title);

@@ -1,5 +1,8 @@
 package org.augbari.modules.positionTracker
 
+/**
+ * Integrable object interface
+ * */
 interface Integrable {
 
     var currentState: DoubleArray

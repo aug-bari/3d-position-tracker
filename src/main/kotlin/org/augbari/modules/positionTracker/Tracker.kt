@@ -3,6 +3,15 @@ package org.augbari.modules.positionTracker
 import org.eclipse.paho.client.mqttv3.*
 import org.json.JSONObject
 
+/**
+ * Tracker object which manages acceleration data received from mqtt broker.
+ *
+ * Thanks to Integrator class and Integrable objects like Accelerometer, Speed and Position it can determine the
+ * position in a 3d space environment.
+ *
+ * @param broker Broker URI in a standard form (such as "tcp://mywebsite.com").
+ * @param clientId Name of the client to be identified in the network.
+ * */
 class Tracker(private val broker: String, private val clientId: String): MqttCallback {
 
     // MQTT vars
@@ -41,6 +50,12 @@ class Tracker(private val broker: String, private val clientId: String): MqttCal
         //integrator.setInputFilter(speed, FilterType.highPassFilter, 1.0)
     }
 
+    /**
+     * Connect to mqtt server providing username and password.
+     *
+     * @param username Authentication username used to connect to mqtt server.
+     * @param password Authentication password used to connect to mqtt server.
+     * */
     fun connect(username: String, password: String): Boolean {
         try {
 
@@ -69,21 +84,40 @@ class Tracker(private val broker: String, private val clientId: String): MqttCal
         }
     }
 
+    /**
+     * Disconnect from mqtt server.
+     * */
     fun disconnect() {
         mqttClient.disconnect()
         println("Disconnected")
     }
 
+    /**
+     * Subscribe to mqtt topic.
+     *
+     * @param topic Topic to register to.
+     * */
     fun register(topic: String) {
         mqttClient.subscribe(topic, qos)
     }
 
+    /**
+     * Send message to a specific topic with a specific content.
+     *
+     * @param topic Topic to which send the message.
+     * @param data String data to send to topic.
+     * */
     fun sendMessage(topic: String, data: String) {
         mqttClient.publish(topic, data.toByteArray(), qos, true)
     }
 
     /**
-     * Required message format := {"gyro":{"x":0.26267204,"y":0.06963864,"z":0.26145032},"accel":{"x":-0.1656,"y":0.8746,"z":-0.41939998}}
+     * On message arrived callback.
+     *
+     * Required message format := {"gyro":{"x":0.26267204,"y":0.06963864,"z":0.26145032},"accel":{"x":-0.1656,"y":0.8746,"z":-0.41939998}}.
+     *
+     * @param topic Topic from which the message is arrived.
+     * @param message MqttMessage arrived from server.
      * */
     override fun messageArrived(topic: String?, message: MqttMessage?) {
         if(previousPacketTime == 0.0) {
@@ -117,13 +151,26 @@ class Tracker(private val broker: String, private val clientId: String): MqttCal
         onMessageArrivedCallback()
     }
 
+    /**
+     * On connection lost from mqtt server callback.
+     *
+     * @param cause - check the Eclipse PAHO documentation.
+     * */
     override fun connectionLost(cause: Throwable?) {
         println("Connection to broker lost")
     }
 
+    /**
+     * On message delivery complete callback.
+     *
+     * @param token - check the Eclipse PAHO documentation.
+     * */
     override fun deliveryComplete(token: IMqttDeliveryToken?) {}
 
-    fun calcFrequency(): Double {
+    /**
+     * Private method to calculate frequency of incoming packets.
+     * */
+    private fun calcFrequency(): Double {
         val deltaTime = System.nanoTime() * nano2sec - previousPacketTime
         previousPacketTime = System.nanoTime() * nano2sec
         return 1 / deltaTime
